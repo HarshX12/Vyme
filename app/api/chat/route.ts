@@ -1,6 +1,4 @@
-import { streamText } from "ai";
-import { simulateReadableStream } from "ai/test";
-import { MockLanguageModelV2 } from "ai/test";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 
 export const maxDuration = 30;
 
@@ -29,7 +27,7 @@ const RESPONSES: { keywords: string[]; reply: string }[] = [
       "Violins are very size- and fit-dependent, especially for younger players — getting the right body size matters more than the brand at the beginner level. A standard student outfit (violin + bow + case) from Cremona or Stentor is a reliable starting point. Is this for a child or an adult beginner? That changes the sizing conversation a lot.",
   },
   {
-    keywords: ["budget", "cheap", "affordable", "beginner"],
+    keywords: ["budget", "cheap", "affordable"],
     reply:
       "Totally get wanting to start cheap and not overcommit. The honest advice: spend just enough that the instrument doesn't fight you — a genuinely bad beginner instrument (bad intonation, high action, cheap keys) is the #1 reason people quit in month one. Tell me which instrument you're considering and I'll point you to the sweet spot between 'too cheap to enjoy' and 'overspending on gear you'll outgrow.'",
   },
@@ -53,16 +51,24 @@ function pickReply(userMessage: string): string {
   return FALLBACK_REPLY;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ---- 2. Route handler ----------------------------------------------------
-// Uses the AI SDK's MockLanguageModelV2 + simulateReadableStream so the
-// response streams word-by-word through the SAME useChat pipeline your
-// real Anthropic call would use. No API key, no network call, no cost.
+// Streams a canned reply word-by-word through the same UI Message Stream
+// protocol useChat expects — no real model call, no API key, no cost,
+// and no test-only dependencies (safe for production builds).
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const lastUserMessage =
     [...messages].reverse().find((m: any) => m.role === "user")?.content ??
-    "";
+    (() => {
+      const last = messages?.[messages.length - 1];
+      const part = last?.parts?.find((p: any) => p.type === "text");
+      return part?.text ?? "";
+    })();
 
   const replyText = pickReply(
     typeof lastUserMessage === "string"
@@ -71,32 +77,23 @@ export async function POST(req: Request) {
   );
 
   const words = replyText.split(" ");
+  const messageId = `mock-${Date.now()}`;
 
-  const mockModel = new MockLanguageModelV2({
-    doStream: async () => ({
-      stream: simulateReadableStream({
-        chunkDelayInMs: 35, // tune typing speed here
-        initialDelayInMs: 400, // pause before it "starts thinking"
-        chunks: [
-          ...words.map((w, i) => ({
-            type: "text-delta" as const,
-            id: "mock-1",
-            delta: i === 0 ? w : " " + w,
-          })),
-          {
-            type: "finish" as const,
-            finishReason: "stop" as const,
-            usage: { inputTokens: 10, outputTokens: words.length, totalTokens: 10 + words.length },
-          },
-        ],
-      }),
-    }),
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      await sleep(400); // brief "thinking" pause
+
+      writer.write({ type: "text-start", id: messageId });
+
+      for (let i = 0; i < words.length; i++) {
+        const delta = i === 0 ? words[i] : " " + words[i];
+        writer.write({ type: "text-delta", id: messageId, delta });
+        await sleep(35); // typing speed — tune as you like
+      }
+
+      writer.write({ type: "text-end", id: messageId });
+    },
   });
 
-  const result = streamText({
-    model: mockModel,
-    messages,
-  });
-
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({ stream });
 }
