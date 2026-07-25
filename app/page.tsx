@@ -58,6 +58,14 @@ function HeadsetIcon() {
   );
 }
 
+function ArrowIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared style tokens                                                 */
 /* ------------------------------------------------------------------ */
@@ -237,16 +245,99 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Product cards                                                       */
+/* ------------------------------------------------------------------ */
+
+type Product = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  level: string;
+  blurb: string;
+  glyph: string;
+  tint: string;
+  url: string;
+};
+
+const inr = (n: number) => '₹' + n.toLocaleString('en-IN');
+
+function ProductCard({ p }: { p: Product }) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white/90 shadow-sm ring-1 ring-black/5 backdrop-blur">
+      {/* Artwork band — gradient + glyph, so no image hosting is needed */}
+      <div
+        className="flex h-24 items-center justify-center text-4xl"
+        style={{ background: `linear-gradient(135deg, ${p.tint}, ${p.tint}99)` }}
+      >
+        <span className="drop-shadow-sm">{p.glyph}</span>
+      </div>
+
+      <div className="p-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-bold leading-tight text-neutral-800">
+              {p.name}
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+              {p.category} · {p.level}
+            </p>
+          </div>
+          <p className="shrink-0 text-[14px] font-extrabold text-neutral-800">
+            {inr(p.price)}
+          </p>
+        </div>
+
+        <p className="mt-2 text-[12.5px] leading-snug text-neutral-600">{p.blurb}</p>
+
+        <a
+          href={p.url}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-semibold text-white shadow-sm transition hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #7B6CF6, #5B4BE0)' }}
+        >
+          View product <ArrowIcon />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function ProductGrid({ products }: { products: Product[] }) {
+  if (!products?.length) return null;
+  return (
+    <div className="flex items-start gap-2">
+      <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />
+      <div className="flex w-full max-w-[85%] flex-col gap-2.5">
+        {products.map((p) => (
+          <ProductCard key={p.id} p={p} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Chat feed                                                           */
 /* ------------------------------------------------------------------ */
 
 type UiMessage = ReturnType<typeof useChat>['messages'][number];
 
-function messageText(m: UiMessage) {
-  return m.parts
-    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-    .map((p) => p.text)
-    .join('');
+function Bubble({ text, isUser }: { text: string; isUser: boolean }) {
+  return (
+    <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />}
+      <div
+        className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-[15px] shadow-sm ${
+          isUser
+            ? 'rounded-br-md text-white'
+            : 'rounded-bl-md bg-white/85 text-neutral-800 ring-1 ring-black/5 backdrop-blur'
+        }`}
+        style={isUser ? { background: 'linear-gradient(135deg, #D97C4C, #B8532A)' } : undefined}
+      >
+        {text}
+      </div>
+    </div>
+  );
 }
 
 function Feed({ messages, busy }: { messages: UiMessage[]; busy: boolean }) {
@@ -255,23 +346,37 @@ function Feed({ messages, busy }: { messages: UiMessage[]; busy: boolean }) {
       <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Today</p>
 
       {messages.map((m) => {
-        const text = messageText(m);
-        if (!text) return null;
         const isUser = m.role === 'user';
 
+        // Render each part in order: text bubbles and product cards interleaved.
         return (
-          <div key={m.id} className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
-            {!isUser && <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />}
-            <div
-              className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-[15px] shadow-sm ${
-                isUser
-                  ? 'rounded-br-md text-white'
-                  : 'rounded-bl-md bg-white/85 text-neutral-800 ring-1 ring-black/5 backdrop-blur'
-              }`}
-              style={isUser ? { background: 'linear-gradient(135deg, #D97C4C, #B8532A)' } : undefined}
-            >
-              {text}
-            </div>
+          <div key={m.id} className="flex flex-col gap-3">
+            {(m.parts as any[]).map((part, i) => {
+              if (part.type === 'text') {
+                const text = (part.text ?? '').trim();
+                if (!text) return null;
+                return <Bubble key={`${m.id}-t-${i}`} text={text} isUser={isUser} />;
+              }
+
+              // Tool output for our catalog tool → render cards.
+              if (part.type === 'tool-recommendInstruments') {
+                if (part.state === 'output-available') {
+                  const products = (part.output?.products ?? []) as Product[];
+                  return <ProductGrid key={`${m.id}-p-${i}`} products={products} />;
+                }
+                // While the tool call is being assembled, show a soft placeholder.
+                return (
+                  <div key={`${m.id}-p-${i}`} className="flex items-center gap-2">
+                    <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />
+                    <div className="rounded-2xl rounded-bl-md bg-white/70 px-4 py-2.5 text-[13px] font-medium text-neutral-500 ring-1 ring-black/5 backdrop-blur">
+                      Finding matches…
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })}
           </div>
         );
       })}
