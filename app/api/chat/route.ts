@@ -224,5 +224,12 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    onError: (error) => {
+      // Prototype: surface the real error in the browser bubble and Vercel logs
+      // instead of the default masked "An error occurred." Remove before going public.
+      console.error("[/api/chat] error:", error);
+      return error instanceof Error ? error.message : String(error);
+    },
+  });
 }
