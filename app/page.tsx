@@ -75,11 +75,12 @@ const sphere = {
     'radial-gradient(circle at 32% 28%, #F4C6A2 0%, #D97C4C 45%, #A8441F 100%)',
 };
 
-const categories = [
+// Top 5 most popular instruments, revealed after "Discover our Instruments".
+const popularInstruments = [
   { label: 'Guitars', glyph: '🎸' },
-  { label: 'Violins', glyph: '🎻' },
-  { label: 'Mandolins', glyph: '🪕' },
   { label: 'Digital Pianos', glyph: '🎹' },
+  { label: 'Violins', glyph: '🎻' },
+  { label: 'Drums', glyph: '🥁' },
   { label: 'Saxophones', glyph: '🎷' },
 ];
 
@@ -197,6 +198,10 @@ export default function Page() {
 /* ------------------------------------------------------------------ */
 
 function Welcome({ onPick }: { onPick: (text: string) => void }) {
+  // Landing shows only the two CTAs. Tapping Discover reveals the popular
+  // instrument chips + Explore all, without sending a message yet.
+  const [discovering, setDiscovering] = useState(false);
+
   return (
     <div className="flex flex-col items-center pt-6 text-center">
       <div className="h-24 w-24 rounded-full shadow-xl" style={sphere} />
@@ -211,13 +216,43 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
           Hey there!!! Lets vibe with Vyme.<br />how can i help you today?
         </p>
 
-        <button
-          type="button"
-          onClick={() => onPick("I'd like to discover your instruments.")}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-orange-300 bg-orange-50/60 py-3 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
-        >
-          🎵 Discover our Instruments
-        </button>
+        {!discovering ? (
+          <button
+            type="button"
+            onClick={() => setDiscovering(true)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-orange-300 bg-orange-50/60 py-3 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+          >
+            🎵 Discover our Instruments
+          </button>
+        ) : (
+          <div className="mt-4">
+            <p className="mb-2 text-[12px] font-semibold text-neutral-500">
+              Popular picks — tap one to start
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {popularInstruments.map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  onClick={() => onPick(`I'm interested in ${c.label.toLowerCase()}.`)}
+                  className="rounded-full border border-orange-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-orange-700 shadow-sm transition hover:bg-orange-50"
+                >
+                  <span className="mr-1">{c.glyph}</span>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                onPick('Show me all the instruments you have and help me choose one.')
+              }
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-orange-300 bg-orange-50/60 py-2.5 text-[13px] font-semibold text-orange-700 transition hover:bg-orange-100"
+            >
+              Explore all <ArrowIcon />
+            </button>
+          </div>
+        )}
 
         <p className="my-2 text-center text-xs font-medium text-neutral-400">Or</p>
 
@@ -228,21 +263,6 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
         >
           <HeadsetIcon /> Get Support
         </button>
-      </div>
-
-      {/* Category chips */}
-      <div className="mt-6 flex flex-wrap justify-center gap-2">
-        {categories.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            onClick={() => onPick(`I'm interested in ${c.label.toLowerCase()}.`)}
-            className="rounded-full border border-orange-200 bg-white/70 px-3 py-1.5 text-xs font-semibold text-orange-700 shadow-sm transition hover:bg-white"
-          >
-            <span className="mr-1">{c.glyph}</span>
-            {c.label}
-          </button>
-        ))}
       </div>
     </div>
   );
