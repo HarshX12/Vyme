@@ -90,7 +90,7 @@ const categories = [
 export default function Page() {
   // v5 useChat: no managed input state — we own it and call sendMessage.
   // With no options, it POSTs to /api/chat (matches your route.ts).
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, error, regenerate } = useChat();
   const [input, setInput] = useState('');
   const feedRef = useRef<HTMLDivElement>(null);
 
@@ -148,7 +148,11 @@ export default function Page() {
 
         {/* ---------------- Scrollable body ---------------- */}
         <div ref={feedRef} className="flex-1 overflow-y-auto px-5 pb-4">
-          {isEmpty ? <Welcome onPick={send} /> : <Feed messages={messages} busy={isBusy} />}
+          {isEmpty ? (
+            <Welcome onPick={send} />
+          ) : (
+            <Feed messages={messages} busy={isBusy} error={error} onRetry={() => regenerate()} />
+          )}
         </div>
 
         {/* ---------------- Composer ---------------- */}
@@ -340,7 +344,17 @@ function Bubble({ text, isUser }: { text: string; isUser: boolean }) {
   );
 }
 
-function Feed({ messages, busy }: { messages: UiMessage[]; busy: boolean }) {
+function Feed({
+  messages,
+  busy,
+  error,
+  onRetry,
+}: {
+  messages: UiMessage[];
+  busy: boolean;
+  error?: Error;
+  onRetry: () => void;
+}) {
   return (
     <div className="flex flex-col gap-3 pt-4">
       <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Today</p>
@@ -386,6 +400,25 @@ function Feed({ messages, busy }: { messages: UiMessage[]; busy: boolean }) {
           <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />
           <div className="flex gap-1 rounded-2xl rounded-bl-md bg-white/85 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur">
             <Dot /> <Dot delay="0.15s" /> <Dot delay="0.3s" />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-end gap-2">
+          <span className="mb-1 h-6 w-6 shrink-0 rounded-full shadow" style={sphere} />
+          <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-red-50 px-4 py-3 text-[13px] text-red-700 ring-1 ring-red-200">
+            <p className="font-semibold">Could not reach the assistant.</p>
+            {error.message && (
+              <p className="mt-0.5 break-words text-[12px] text-red-500">{error.message}</p>
+            )}
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-2 rounded-full bg-red-600 px-3 py-1 text-[12px] font-semibold text-white transition hover:bg-red-700"
+            >
+              Try again
+            </button>
           </div>
         </div>
       )}
