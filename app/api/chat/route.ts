@@ -198,7 +198,10 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: groq("llama-3.3-70b-versatile"),
+    // Groq moved the Llama models to Enterprise-only access. gpt-oss-120b is
+    // on the developer plan and supports tool calling. Swap to gpt-oss-20b for
+    // a faster/cheaper option.
+    model: groq("openai/gpt-oss-120b"),
     system: SYSTEM_PROMPT,
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(3),
