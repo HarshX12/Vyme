@@ -251,6 +251,19 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
             >
               Explore all <ArrowIcon />
             </button>
+
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Coming soon"
+              className="mt-2 flex w-full cursor-not-allowed items-center justify-between rounded-full border border-dashed border-neutral-300 bg-white/40 px-4 py-2.5 text-[13px] font-semibold text-neutral-400"
+            >
+              <span className="flex items-center gap-1.5">🎯 Take Instrument Quiz</span>
+              <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                Coming soon
+              </span>
+            </button>
           </div>
         )}
 
