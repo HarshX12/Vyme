@@ -57,6 +57,7 @@ type Rec = {
   category: string;
   price: number;
   why: string;
+  image: string;
   glyph: string;
   tint: string;
   stock: 'In stock' | 'Low stock';
@@ -70,6 +71,7 @@ const RECS: Rec[] = [
     category: 'Acoustic Guitar',
     price: 9500,
     why: 'Forgiving action that suits brand-new fingers.',
+    image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=600&q=70',
     glyph: '🎸',
     tint: '#D97C4C',
     stock: 'In stock',
@@ -81,6 +83,7 @@ const RECS: Rec[] = [
     category: 'Acoustic Guitar',
     price: 16500,
     why: 'Solid-top warmth with an easy, rolled fretboard edge.',
+    image: 'https://images.unsplash.com/photo-1558098329-a11cff621064?auto=format&fit=crop&w=600&q=70',
     glyph: '🎸',
     tint: '#C2612F',
     stock: 'In stock',
@@ -92,6 +95,7 @@ const RECS: Rec[] = [
     category: 'Mandolin',
     price: 11500,
     why: 'Bright and compact — a fun step up if you already strum.',
+    image: 'https://images.unsplash.com/photo-1621419203051-f4e463849784?auto=format&fit=crop&w=600&q=70',
     glyph: '🪕',
     tint: '#B07A2B',
     stock: 'Low stock',
@@ -311,10 +315,23 @@ function RecommendationCard({ r }: { r: Rec }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
       <div
-        className="flex h-32 items-center justify-center text-5xl"
+        className="relative h-32"
         style={{ background: `linear-gradient(135deg, ${r.tint}, ${r.tint}99)` }}
       >
-        <span className="drop-shadow-sm">{r.glyph}</span>
+        {/* Fallback glyph sits behind; the real photo covers it when it loads.
+            If the image fails, onError hides it and the gradient + glyph show. */}
+        <span className="absolute inset-0 grid place-items-center text-5xl drop-shadow-sm">
+          {r.glyph}
+        </span>
+        <img
+          src={r.image}
+          alt={r.name}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
       </div>
 
       <div className="flex flex-1 flex-col p-4">
