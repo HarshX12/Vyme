@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ChatWidget from '../components/ChatWidget';
 
 /* ==================================================================== */
 /*  Kadence AI store — Stage 1: Landing / hero with inline AI bar        */
@@ -284,6 +285,9 @@ export default function StoreLanding() {
           </section>
         )}
       </main>
+
+      {/* Floating Vyme chatbot launcher (desktop corner card / mobile sheet) */}
+      <ChatWidget />
     </div>
   );
 }
