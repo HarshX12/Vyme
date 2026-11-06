@@ -113,6 +113,150 @@ function Dot({ delay = '0s' }: { delay?: string }) {
   return <span className="h-2 w-2 animate-bounce rounded-full bg-neutral-400" style={{ animationDelay: delay }} />;
 }
 
+/* ----- Discover: chip-driven flow, a few taps, no long Q&A ----- */
+
+const GLYPH: Record<string, string> = {
+  Guitars: '🎸',
+  'Digital Pianos': '🎹',
+  Violins: '🎻',
+  Drums: '🥁',
+  Saxophones: '🎷',
+  Mandolins: '🪕',
+};
+const POPULAR = ['Guitars', 'Digital Pianos', 'Violins', 'Drums', 'Saxophones'];
+const ALL_INSTRUMENTS = ['Guitars', 'Digital Pianos', 'Violins', 'Drums', 'Mandolins', 'Saxophones'];
+const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+const BUDGETS = ['Under ₹10k', '₹10k–₹20k', '₹20k+', 'Any budget'];
+const USES = ['Learning', 'Performing', 'Studio', 'A gift'];
+
+function SelChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[36px] rounded-full px-3 text-[12.5px] font-semibold transition ${
+        active ? 'text-white shadow-sm' : 'border border-orange-200 bg-white text-orange-700 hover:bg-orange-50'
+      }`}
+      style={active ? { background: 'linear-gradient(135deg, #D97C4C, #B8532A)' } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ChipGroup({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <SelChip key={o} active={value === o} onClick={() => onChange(o)}>
+            {o}
+          </SelChip>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="mb-2 text-[12px] font-semibold text-neutral-400 transition hover:text-neutral-600">
+      ‹ Back
+    </button>
+  );
+}
+
+function Discover({ onSend }: { onSend: (text: string) => void }) {
+  const [step, setStep] = useState<'home' | 'instrument' | 'refine'>('home');
+  const [showAll, setShowAll] = useState(false);
+  const [instrument, setInstrument] = useState('');
+  const [level, setLevel] = useState('Beginner');
+  const [budget, setBudget] = useState('Any budget');
+  const [use, setUse] = useState('Learning');
+
+  if (step === 'home') {
+    return (
+      <div className="flex h-full flex-col items-center justify-center text-center">
+        <span className="h-16 w-16 rounded-full shadow-lg" style={sphere} />
+        <p className="mt-3 text-[15px] font-semibold text-neutral-700">Hi, I’m Vyme.</p>
+        <p className="mt-1 max-w-[230px] text-[13px] text-neutral-500">
+          Find your instrument in a few taps — no long Q&amp;A.
+        </p>
+        <div className="mt-4 flex w-full max-w-[260px] flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setStep('instrument')}
+            className="min-h-[44px] rounded-full border border-orange-300 bg-orange-50/60 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+          >
+            🎵 Discover our Instruments
+          </button>
+          <button
+            type="button"
+            onClick={() => onSend('I need some support with an order.')}
+            className="min-h-[44px] rounded-full border border-indigo-200 bg-white text-sm font-semibold text-indigo-500 transition hover:bg-indigo-50"
+          >
+            Get Support
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'instrument') {
+    const list = showAll ? ALL_INSTRUMENTS : POPULAR;
+    return (
+      <div className="pt-4">
+        <BackLink onClick={() => setStep('home')} />
+        <p className="mb-2 text-[13px] font-semibold text-neutral-700">Which instrument?</p>
+        <div className="flex flex-wrap gap-2">
+          {list.map((i) => (
+            <SelChip key={i} active={false} onClick={() => { setInstrument(i); setStep('refine'); }}>
+              <span className="mr-1">{GLYPH[i]}</span>
+              {i}
+            </SelChip>
+          ))}
+        </div>
+        {!showAll && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-orange-300 bg-orange-50/60 py-2.5 text-[13px] font-semibold text-orange-700 transition hover:bg-orange-100"
+          >
+            Explore all →
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // refine — quick single-tap selectors, then one message to the AI
+  return (
+    <div className="flex flex-col gap-3 pt-4">
+      <BackLink onClick={() => setStep('instrument')} />
+      <p className="text-[13px] font-semibold text-neutral-700">
+        <span className="mr-1">{GLYPH[instrument]}</span>
+        {instrument} — a couple of quick picks
+      </p>
+      <ChipGroup label="Experience" options={LEVELS} value={level} onChange={setLevel} />
+      <ChipGroup label="Budget" options={BUDGETS} value={budget} onChange={setBudget} />
+      <ChipGroup label="Use case" options={USES} value={use} onChange={setUse} />
+      <button
+        type="button"
+        onClick={() =>
+          onSend(
+            `Recommend ${instrument.toLowerCase()} for me now — level: ${level}, budget: ${budget}, use: ${use}. Show matching options and do not ask any more questions.`,
+          )
+        }
+        className="mt-1 min-h-[44px] rounded-full text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg, #7B6CF6, #5B4BE0)' }}
+      >
+        Find my match
+      </button>
+    </div>
+  );
+}
+
 /* ==================================================================== */
 /*  The chat panel (header + feed + composer)                           */
 /* ==================================================================== */
@@ -161,29 +305,7 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
       {/* Feed */}
       <div ref={feedRef} className="flex-1 overflow-y-auto px-4 pb-3">
         {isEmpty ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <span className="h-16 w-16 rounded-full shadow-lg" style={sphere} />
-            <p className="mt-3 text-[15px] font-semibold text-neutral-700">Hi, I’m Vyme.</p>
-            <p className="mt-1 max-w-[220px] text-[13px] text-neutral-500">
-              Tell me what you play and your budget — I’ll find your match.
-            </p>
-            <div className="mt-4 flex w-full max-w-[260px] flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => send('I’d like to discover your instruments.')}
-                className="min-h-[44px] rounded-full border border-orange-300 bg-orange-50/60 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
-              >
-                🎵 Discover our Instruments
-              </button>
-              <button
-                type="button"
-                onClick={() => send('I need some support with an order.')}
-                className="min-h-[44px] rounded-full border border-indigo-200 bg-white text-sm font-semibold text-indigo-500 transition hover:bg-indigo-50"
-              >
-                Get Support
-              </button>
-            </div>
-          </div>
+          <Discover onSend={send} />
         ) : (
           <div className="flex flex-col gap-3 pt-3">
             {messages.map((m) => {
